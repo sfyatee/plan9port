@@ -2,16 +2,23 @@
 #include <libc.h>
 #include <bio.h>
 #include <libString.h>
+#include <fcall.h>
+
+typedef struct Seen Seen;
+struct Seen {
+	Seen	*up;
+	Dir	*d;
+};
 
 int Cflag = 0;
 int uflag = 0;
 String *stfmt;
 
 /* should turn these flags into a mask */
-int dflag = 1;
-int fflag = 1;
-int tflag = 0;
-int xflag = 0;
+int printdirs = 1;
+int printfiles = 1;
+int temponly = 0;
+int execonly = 0;
 long maxdepth = ~(1<<31);
 long mindepth = 0;
 
@@ -19,8 +26,6 @@ char *dotpath = ".";
 Dir *dotdir = nil;
 
 Biobuf *bout;
-
-int seen(Dir*);
 
 void
 warn(char *fmt, ...)
@@ -39,6 +44,17 @@ warn(char *fmt, ...)
 	fprint(2, "%s\n", buf);
 }
 
+int
+seen(Seen *s, Dir *d)
+{
+	for(; s != nil; s = s->up)
+		if(d->qid.path == s->d->qid.path
+		&& d->qid.type == s->d->qid.type
+		&& d->dev == s->d->dev)
+			return 1;
+	return 0;
+}
+
 void
 dofile(char *path, Dir *f, int pathonly)
 {
@@ -46,8 +62,8 @@ dofile(char *path, Dir *f, int pathonly)
 
 	if(
 		(f == dotdir)
-		|| (tflag && ! (f->qid.type & QTTMP))
-		|| (xflag && ! (f->mode & DMEXEC))
+		|| (temponly && ! (f->qid.type & QTTMP))
+		|| (execonly && ! (f->mode & DMEXEC))
 	)
 		return;
 
@@ -70,7 +86,7 @@ dofile(char *path, Dir *f, int pathonly)
 			break;
 		case 'q': Bprint(bout, "%ullx.%uld.%.2uhhx", f->qid.path, f->qid.vers, f->qid.type); break;
 		case 's': Bprint(bout, "%lld", f->length); break;
-		case 'x': Bprint(bout, "%ulo", f->mode); break;
+		case 'x': Bprint(bout, "%M", f->mode); break;
 
 		/* These two  are slightly different, as they tell us about the fileserver instead of the file */
 		case 'D': Bprint(bout, "%ud", f->dev); break;
@@ -90,19 +106,21 @@ dofile(char *path, Dir *f, int pathonly)
 }
 
 void
-walk(char *path, Dir *cf, long depth)
+walk(char *path, Dir *cf, Seen *up, long depth)
 {
 	String *file;
 	Dir *dirs, *f, *fe;
+	Seen s;
+	long n, fseen;
 	int fd;
-	long n;
 
 	if(cf == nil){
 		warn("path: %s: %r", path);
 		return;
 	}
 
-	if(depth >= maxdepth)
+	fseen = seen(up, cf);
+	if(depth >= maxdepth || fseen)
 		goto nodescend;
 
 	if((fd = open(path, OREAD)) < 0){
@@ -110,32 +128,31 @@ walk(char *path, Dir *cf, long depth)
 		return;
 	}
 
+	s.d = cf;
+	s.up = up;
 	while((n = dirread(fd, &dirs)) > 0){
 		fe = dirs+n;
 		for(f = dirs; f < fe; f++){
-			if(seen(f))
-				continue;
-			if(! (f->qid.type & QTDIR)){
-				if(fflag && depth >= mindepth)
+			if(!(f->qid.type & QTDIR)){
+				if(printfiles && depth >= mindepth)
 					dofile(path, f, 0);
-			} else if(strcmp(f->name, ".") == 0 || strcmp(f->name, "..") == 0){
+			}else if(strcmp(f->name, ".") == 0 || strcmp(f->name, "..") == 0){
 				warn(". or .. named file: %s/%s", path, f->name);
-			} else{
+			}else{
 				if(depth+1 > maxdepth){
 					dofile(path, f, 0);
 					continue;
-				} else if(path == dotpath){
+				}else if(path == dotpath){
 					if((file = s_new()) == nil)
 						sysfatal("s_new: %r");
-				} else{
+				}else{
 					if((file = s_copy(path)) == nil)
 						sysfatal("s_copy: %r");
 					if(s_len(file) != 1 || *s_to_c(file) != '/')
 						s_putc(file, '/');
 				}
 				s_append(file, f->name);
-
-				walk(s_to_c(file), f, depth+1);	
+				walk(s_to_c(file), f, &s, depth+1);
 				s_free(file);
 			}
 		}
@@ -147,7 +164,7 @@ walk(char *path, Dir *cf, long depth)
 
 nodescend:
 	depth--;
-	if(dflag && depth >= mindepth)
+	if(printdirs && (depth >= mindepth || fseen))
 		dofile(path, cf, 0);
 }
 
@@ -220,7 +237,6 @@ usage(void)
 	functions, but since they are a no-op and libString needs
 	a rework, I left them in - BurnZeZ
 */
-
 void
 main(int argc, char **argv)
 {
@@ -232,10 +248,10 @@ main(int argc, char **argv)
 	case 'C': Cflag++; break; /* undocumented; do not cleanname() the args */
 	case 'u': uflag++; break; /* unbuffered output */
 
-	case 'd': dflag++; fflag = 0; break; /* only dirs */
-	case 'f': fflag++; dflag = 0; break; /* only non-dirs */
-	case 't': tflag++; break; /* only tmp files */
-	case 'x': xflag++; break; /* only executable permission */
+	case 'd': printfiles = 0;	break; /* only dirs */
+	case 'f': printdirs = 0;	break; /* only non-dirs */
+	case 't': temponly = 1;		break; /* only tmp files */
+	case 'x': execonly = 1;		break; /* only executable permission */
 
 	case 'n': elimdepth(EARGF(usage())); break;
 	case 'e':
@@ -250,6 +266,11 @@ main(int argc, char **argv)
 		usage();
 	}ARGEND;
 
+	if(!printfiles && !printdirs)
+		sysfatal("mutually exclusive flags: -f and -d");
+
+	fmtinstall('M', dirmodefmt);
+
 	if((bout = Bfdopen(1, OWRITE)) == nil)
 		sysfatal("Bfdopen: %r");
 	Blethal(bout, nil);
@@ -263,8 +284,8 @@ main(int argc, char **argv)
 		maxdepth++;
 	if(argc == 0){
 		dotdir = dirstat(".");
-		walk(dotpath, dotdir, 1);
-	} else for(i=0; i<argc; i++){
+		walk(dotpath, dotdir, nil, 1);
+	}else for(i=0; i<argc; i++){
 		if(strncmp(argv[i], "#/", 2) == 0)
 			slashslash(argv[i]+2);
 		else{
@@ -272,54 +293,17 @@ main(int argc, char **argv)
 				cleanname(argv[i]);
 			slashslash(argv[i]);
 		}
-		if((d = dirstat(argv[i])) != nil && ! (d->qid.type & QTDIR)){
-			if(fflag && !seen(d) && mindepth < 1)
+		if((d = dirstat(argv[i])) == nil)
+			continue;
+		if(d->qid.type & QTDIR){
+			walk(argv[i], d, nil, 1);
+		}else{
+			if(printfiles && mindepth < 1)
 				dofile(argv[i], d, 1);
-		} else
-			walk(argv[i], d, 1);
+		}
 		free(d);
 	}
 	Bterm(bout);
 
 	exits(nil);
-}
-
-/* below pilfered from /sys/src/cmd/du.c
- * NOTE: I did not check for bugs */
-
-#define	NCACHE	256	/* must be power of two */
-
-typedef struct
-{
-	Dir*	cache;
-	int	n;
-	int	max;
-} Cache;
-Cache cache[NCACHE];
-
-int
-seen(Dir *dir)
-{
-	Dir *dp;
-	int i;
-	Cache *c;
-
-	c = &cache[dir->qid.path&(NCACHE-1)];
-	dp = c->cache;
-	for(i=0; i<c->n; i++, dp++)
-		if(dir->qid.path == dp->qid.path &&
-		   dir->type == dp->type &&
-		   dir->dev == dp->dev)
-			return 1;
-	if(c->n == c->max){
-		if (c->max == 0)
-			c->max = 8;
-		else
-			c->max += c->max/2;
-		c->cache = realloc(c->cache, c->max*sizeof(Dir));
-		if(c->cache == nil)
-			sysfatal("realloc: %r");
-	}
-	c->cache[c->n++] = *dir;
-	return 0;
 }
