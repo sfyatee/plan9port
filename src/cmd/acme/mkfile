@@ -26,6 +26,7 @@ OFILES=\
 	util.$O\
 	wind.$O\
 	xfid.$O\
+	dat.$O\
 
 # pkg-config --libs tree-sitter tree-sitter-c
 
