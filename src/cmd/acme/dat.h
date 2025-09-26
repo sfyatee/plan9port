@@ -21,7 +21,6 @@ enum
 	QWrdsel,
 	QWwrsel,
 	QWtag,
-	QWcomplete,
 	QWxdata,
 	QMAX
 };
@@ -107,7 +106,7 @@ struct Buffer
 void		bufinsert(Buffer*, uint, Rune*, uint);
 void		bufdelete(Buffer*, uint, uint);
 uint		bufload(Buffer*, uint, int, int*, DigestState*);
-char		bufread(Buffer*, uint, Rune*, uint);
+void		bufread(Buffer*, uint, Rune*, uint);
 void		bufclose(Buffer*);
 void		bufreset(Buffer*);
 
@@ -172,9 +171,6 @@ enum	/* Text.what */
 	Body
 };
 
-#include <tree_sitter/api.h>
-#include <tree_sitter/parser.h>
-
 struct Text
 {
 	File		*file;
@@ -200,10 +196,6 @@ struct Text
 	Rune	*cache;
 	int	nofill;
 	int	needundo;
-
-	TSParser	*parser;
-	TSTree	*tree;
-	TSTreeCursor	cursor;
 };
 
 uint		textbacknl(Text*, uint, uint);

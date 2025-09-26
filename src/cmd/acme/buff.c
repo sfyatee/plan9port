@@ -279,13 +279,13 @@ bufload(Buffer *b, uint q0, int fd, int *nulls, DigestState *h)
 	return loadfile(fd, q0, nulls, bufloader, b, h);
 }
 
-char
+void
 bufread(Buffer *b, uint q0, Rune *s, uint n)
 {
 	uint m;
 
 	if(!(q0<=b->nc && q0+n<=b->nc))
-		return 0;
+		error("bufread: internal error");
 
 	while(n > 0){
 		setcache(b, q0);
@@ -295,7 +295,6 @@ bufread(Buffer *b, uint q0, Rune *s, uint n)
 		s += m;
 		n -= m;
 	}
-	return 1;
 }
 
 void

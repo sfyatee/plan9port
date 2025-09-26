@@ -19,7 +19,6 @@ OFILES=\
 	look.$O\
 	regx.$O\
 	rows.$O\
-	riff.$O\
 	scrl.$O\
 	text.$O\
 	time.$O\
@@ -28,12 +27,9 @@ OFILES=\
 	xfid.$O\
 	dat.$O\
 
-# pkg-config --libs tree-sitter tree-sitter-c
-
 HFILES=dat.h\
 	edit.h\
 	fns.h\
-	riff.h\
 
 <$PLAN9/src/mkone
 <$PLAN9/src/mkdirs

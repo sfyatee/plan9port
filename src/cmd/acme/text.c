@@ -12,7 +12,6 @@
 #include <complete.h>
 #include "dat.h"
 #include "fns.h"
-#include "riff.h"
 
 Image	*tagcols[NCOL];
 Image	*textcols[NCOL];
@@ -37,10 +36,6 @@ textinit(Text *t, File *f, Rectangle r, Reffont *rf, Image *cols[NCOL])
 	t->tabstop = maxtab;
 	memmove(t->fr.cols, cols, sizeof t->fr.cols);
 	textredraw(t, r, rf->f, screen, -1);
-
-	t->parser = ts_parser_new();
-
-	// w->tree = ts_parser_parse_string(w->parser, nil, w->body.file->b.c, w->body.file->b.cnc);
 }
 
 void
@@ -533,10 +528,7 @@ textreadc(Text *t, uint q)
 	if(t->cq0<=q && q<t->cq0+t->ncache)
 		r = t->cache[q-t->cq0];
 	else
-		if(bufread(&t->file->b, q, &r, 1)
-			return r;
-		else
-			return 0;
+		bufread(&t->file->b, q, &r, 1);
 	return r;
 }
 
@@ -688,18 +680,6 @@ texttype(Text *t, Rune r)
 
 	nr = 1;
 	rp = &r;
-
-	if(r==0x12){
-		typecommit(t);
-		riffing = !riffing;
-		next = &riffmode;
-		return;
-	} else if(riffing){
-		typecommit(t);
-		next(t, r);
-		return;
-	}
-
 	switch(r){
 	case Kleft:
 		typecommit(t);
