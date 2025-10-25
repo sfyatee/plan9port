@@ -247,6 +247,7 @@ bin/venti/wrarena
 bin/venti/write
 bin/vmount0
 bin/vnfs
+bin/walk
 bin/wc
 bin/win
 bin/winwatch
@@ -271,6 +272,7 @@ postscript/font/
 sky/*.scat
 sky/here
 src/**/o.*
+src/.cache/
 src/cmd/awk/proctab.c
 src/cmd/awk/y.output
 src/cmd/bc.tab.c
@@ -291,6 +293,7 @@ src/cmd/svgpic/picy.c
 src/cmd/tpic/picy.c
 src/cmd/units.tab.c
 src/cmd/units.tab.h
+src/compile_commands.json
 state
 state.journal
 state.old
