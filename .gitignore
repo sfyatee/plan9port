@@ -76,12 +76,6 @@ bin/file
 bin/fmt
 bin/fontsrv
 bin/fortune
-bin/fossil/conf
-bin/fossil/flchk
-bin/fossil/flfmt
-bin/fossil/fossil
-bin/fossil/last
-bin/fossil/view
 bin/freq
 bin/fs/32vfs
 bin/fs/cpiofs
