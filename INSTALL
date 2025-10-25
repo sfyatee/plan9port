@@ -44,6 +44,7 @@ SunOS)
 	awk=nawk
 	;;
 DragonFly|*BSD)
+	export NPROC=$(sysctl -n hw.ncpu)
 	case `cc -v 2>&1` in
 	*clang*)
 		echo "CC9=clang" >> $PLAN9/config
@@ -67,6 +68,7 @@ DragonFly|*BSD)
 	echo "CFLAGS='-pthread'" >> $PLAN9/config
 	;;
 *Linux*)
+	export NPROC=$(nproc)
 	egrep='grep -E'
 	;;
 esac
