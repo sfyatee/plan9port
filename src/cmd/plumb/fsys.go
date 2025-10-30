@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log/syslog"
 	"os"
 	"os/user"
 	"strconv"
@@ -14,7 +16,8 @@ import (
 
 	"9fans.net/go/plan9"
 	"9fans.net/go/plumb"
-	// "github.com/paul-lalonde/plumb"
+	daemonize "github.com/PlakarKorp/go-daemonize"
+	"github.com/PlakarKorp/go-daemonize/logging"
 )
 
 var Ebadfcall = "bad fcall type"
@@ -145,7 +148,54 @@ func (fsys *Fsys) start() {
 	if err := post9pservice(r2, w1, "plumb", ""); err != nil {
 		errorf("can't post service")
 	}
-	fsys.proc() // TODO(PAL): Daemonzie
+	// Daemonize & supervise the proc loop with go-daemonize.
+	d := daemonize.NewDaemon(
+		daemonize.WithName("plumb"),
+		daemonize.WithVersion("dev"),
+		daemonize.WithLogTag("plumb"),
+	)
+	// Seed a logger in ctx so Daemon.Run(ctx) always has one (prevents panic in foreground w/o -log).
+	ctx := context.Background()
+	if lf := os.Getenv("PLUMB_LOG"); lf != "" {
+		if l, err := logging.NewFileLogger(lf); err == nil {
+			logging.SetDefaultLogger(l)
+			ctx = logging.WithLogger(ctx, l)
+		}
+	} else {
+		if l, err := logging.NewSyslogLogger(syslog.LOG_INFO|syslog.LOG_USER, "plumb"); err == nil {
+			logging.SetDefaultLogger(l)
+			ctx = logging.WithLogger(ctx, l)
+		}
+	}
+	d.AddService("plumbfs", &PlumbService{fsys: fsys})
+	d.Run(ctx) // blocks; handles SIGINT/SIGTERM and clean shutdown
+}
+
+// PlumbService adapts Fsys to daemonize.Service.
+type PlumbService struct {
+	fsys *Fsys
+}
+
+func (s *PlumbService) Run(ctrl *daemonize.ServiceController, ctx context.Context) error {
+	// Mark ready once listeners are posted.
+	ctrl.Up()
+
+	// Run the blocking server loop.
+	done := make(chan struct{})
+	go func() {
+		s.fsys.proc()
+		close(done)
+	}()
+
+	// On shutdown, close the read end so plan9.ReadFcall unblocks and proc() returns.
+	select {
+	case <-ctx.Done():
+		_ = s.fsys.sfdR.Close()
+		<-done
+		return context.Cause(ctx)
+	case <-done:
+		return nil
+	}
 }
 
 func (fsys *Fsys) proc() {
