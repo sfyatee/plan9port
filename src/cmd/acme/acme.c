@@ -1037,7 +1037,6 @@ void
 iconinit(void)
 {
 	Rectangle r;
-	Image *tmp;
 
 	if(tagcols[BACK] == nil) {
 		/* Blue */
