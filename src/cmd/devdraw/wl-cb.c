@@ -1,15 +1,4 @@
-#define _POSIX_C_SOURCE 200809L
-#include <sys/mman.h>
-#include <wayland-client.h>
-#include <wayland-client-protocol.h>
-#include <linux/input-event-codes.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <xkbcommon/xkbcommon.h>
-#include "xdg-shell-protocol.h"
-#include "xdg-decoration-protocol.h"
+#define _GNU_SOURCE
 
 #include <u.h>
 #include <errno.h>
@@ -21,11 +10,21 @@
 #include <mouse.h>
 #include <cursor.h>
 #include <thread.h>
-#include "devdraw.h"
-#include "wl-inc.h"
 
 #undef close
 #undef send
+
+#include <sys/mman.h>
+#include <wayland-client.h>
+#include <wayland-client-protocol.h>
+#include <linux/input-event-codes.h>
+#include <xkbcommon/xkbcommon.h>
+#include <libdecor-0/libdecor.h>
+#include "xdg-shell-protocol.h"
+#include "xdg-decoration-protocol.h"
+
+#include "devdraw.h"
+#include "wl-inc.h"
 
 static void
 xdg_surface_handle_configure(void *data, struct xdg_surface *xdg_surface, uint32_t serial)

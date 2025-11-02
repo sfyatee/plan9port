@@ -1,14 +1,4 @@
-#define _POSIX_C_SOURCE 200809L
-#include <sys/mman.h>
-#include <wayland-client.h>
-#include <wayland-client-protocol.h>
-#include <linux/input-event-codes.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <xkbcommon/xkbcommon.h>
-#include "xdg-shell-protocol.h"
+#define _GNU_SOURCE
 
 #include <u.h>
 #include <errno.h>
@@ -20,6 +10,14 @@
 #include <mouse.h>
 #include <cursor.h>
 #include <thread.h>
+
+#include <wayland-client.h>
+#include <wayland-client-protocol.h>
+#include <linux/input-event-codes.h>
+#include <xkbcommon/xkbcommon.h>
+#include <libdecor-0/libdecor.h>
+#include "xdg-shell-protocol.h"
+
 #include "devdraw.h"
 #include "bigarrow.h"
 #include "wl-inc.h"
