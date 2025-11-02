@@ -29,6 +29,8 @@ if [ "x$WSYSTYPE" = "x" ]; then
 			exit 1
 		fi
 		WSYSTYPE=mac
+	elif [ "x$XDG_SESSION_TYPE" = "xwayland" ]; then
+		WSYSTYPE=wayland
 	elif [ -d "$X11" ]; then
 		WSYSTYPE=x11
 	else
@@ -61,7 +63,7 @@ elif [ $WSYSTYPE = mac ]; then
 elif [ $WSYSTYPE = wayland ]; then
 	echo 'WSYSOFILES=$WSYSOFILES xdg-decoration-protocol.o xdg-shell-protocol.o wl-util.o wl-cb.o wl-draw.o wl-screen.o'
 	echo 'WSYSHFILES=xdg-shell-protocol.h xdg-decoration-protocol.h wl-inc.h'
-	echo 'LDFLAGS=-lwayland-client -lxkbcommon -lrt'
+	echo 'LDFLAGS=-lwayland-client -lxkbcommon -lrt -ldecor-0'
 elif [ $WSYSTYPE = nowsys ]; then
 	echo 'WSYSOFILES=nowsys.o'
 fi

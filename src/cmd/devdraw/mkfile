@@ -39,8 +39,9 @@ latin1.h: $PLAN9/lib/keyboard $O.mklatinkbd
 $O.macargv: $MACARGV
 	$LD -o $target $prereq
 
-xdgshell=/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
-xdgdeco=/usr/share/wayland-protocols/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+protodir=`pkg-config --variable=pkgdatadir wayland-protocols`
+xdgshell=$protodir/stable/xdg-shell/xdg-shell.xml
+xdgdeco=$protodir/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
 
 xdg-shell-protocol.c:
 	wayland-scanner private-code < $xdgshell > xdg-shell-protocol.c
