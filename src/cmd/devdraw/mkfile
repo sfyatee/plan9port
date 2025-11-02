@@ -42,6 +42,13 @@ $O.macargv: $MACARGV
 protodir=`pkg-config --variable=pkgdatadir wayland-protocols`
 xdgshell=$protodir/stable/xdg-shell/xdg-shell.xml
 xdgdeco=$protodir/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+wppointerwarp=$protodir/staging/pointer-warp/pointer-warp-v1.xml
+
+wp-pointer-warp.c:
+	wayland-scanner private-code < $wppointerwarp > wp-pointer-warp.c
+
+wp-pointer-warp.h:
+	wayland-scanner client-header < $wppointerwarp > wp-pointer-warp.h
 
 xdg-shell-protocol.c:
 	wayland-scanner private-code < $xdgshell > xdg-shell-protocol.c
