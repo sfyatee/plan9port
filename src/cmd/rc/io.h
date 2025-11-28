@@ -21,6 +21,7 @@ void pquo(io*, char*);
 void pwrd(io*, char*);
 void pstr(io*, char*);
 void pcmd(io*, tree*);
+void pcmdu(io*, tree*);
 void pval(io*, word*);
 void pfun(io*, void(*)(void));
 void pfnc(io*, thread*);

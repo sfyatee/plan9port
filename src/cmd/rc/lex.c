@@ -39,6 +39,7 @@ newlexer(io *input, char *file)
 	n->lastc = 0;
 	n->inquote = 0;
 	n->incomm = 0;
+	n->skipped = 0;
 	n->lastword = 0;
 	n->lastdol = 0;
 	n->iflast = 0;
@@ -57,7 +58,7 @@ freelexer(lexer *p)
 
 /*
  * read a character from the input stream
- */	
+ */
 static int
 getnext(void)
 {
@@ -127,15 +128,16 @@ advance(void)
 	return c;
 }
 
-static void
+static int
 skipwhite(void)
 {
-	int c;
+	int c, skipped;
 	for(;;){
 		c = nextc();
 		/* Why did this used to be  if(!inquote && c=='#') ?? */
 		if(c=='#'){
 			lex->incomm = 1;
+			lex->skipped = 1;
 			for(;;){
 				c = nextc();
 				if(c=='\n' || c==EOF) {
@@ -145,9 +147,15 @@ skipwhite(void)
 				advance();
 			}
 		}
-		if(c==' ' || c=='\t')
+		if(c==' ' || c=='\t'){
+			lex->skipped = 1;
 			advance();
-		else return;
+		}
+		else{
+			skipped = lex->skipped;
+			lex->skipped = 0;
+			return skipped;
+		}
 	}
 }
 
@@ -228,11 +236,11 @@ yylex(void)
 	 * if the next character is the first character of a simple or compound word,
 	 * we insert a `^' before it.
 	 */
-	if(lex->lastword){
+	if(lex->lastword && flag['Y']){
 		lex->lastword = 0;
 		if(d=='('){
 			advance();
-			strcpy(tok, "( [SUB]");
+			strcpy(tok, "(");
 			return SUB;
 		}
 		if(wordchr(d) || d=='\'' || d=='`' || d=='$' || d=='"'){
@@ -241,7 +249,8 @@ yylex(void)
 		}
 	}
 	lex->inquote = 0;
-	skipwhite();
+	if(skipwhite() && !flag['Y'])
+		return ' ';
 	switch(c = advance()){
 	case EOF:
 		lex->lastdol = 0;
@@ -271,7 +280,8 @@ yylex(void)
 	case '|':
 		lex->lastdol = 0;
 		if(nextis(c)){
-			skipnl();
+			if(flag['Y'])
+				skipnl();
 			strcpy(tok, "||");
 			return OROR;
 		}
@@ -360,8 +370,13 @@ yylex(void)
 		}
 		*w='\0';
 		yylval.tree = t;
-		if(t->type==PIPE)
+		if(t->type==PIPE && flag['Y'])
 			skipnl();
+		if(t->type==REDIR) {
+			skipwhite();
+			if(nextc() == '{')
+				t->type = REDIRW;
+		}
 		return t->type;
 	case '\'':
 		lex->lastdol = 0;

@@ -38,6 +38,15 @@ stuffdot(int a)
 int
 compile(tree *t)
 {
+	if(flag['D']) {
+		io *s = openiostr();
+		char *buf;
+		pfmt(s, "compile: %u\n", t);
+		buf = closeiostr(s);
+		write(2, buf, strlen(buf));
+		free(buf);
+	}
+
 	ncode = 100;
 	codebuf = emalloc(ncode*sizeof codebuf[0]);
 	codep = 0;

@@ -95,6 +95,7 @@ struct lexer{
 	char	eof;
 	char	inquote;
 	char	incomm;
+	char	skipped;
 	char	lastword;	/* was the last token read a word or compound word terminator? */
 	char	lastdol;	/* was the last token read '$' or '$#' or '"'? */
 	char	iflast;		/* static `if not' checking */

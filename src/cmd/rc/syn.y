@@ -19,7 +19,7 @@
 %type<tree> line paren brace body cmdsa cmdsan assign epilog redir
 %type<tree> cmd simple first word comword keyword words
 %type<tree> NOT FOR IN WHILE IF TWIDDLE BANG SUBSHELL SWITCH FN
-%type<tree> WORD REDIR DUP PIPE
+%type<tree> WORD REDIR REDIRW DUP PIPE
 %%
 rc:				{ return 1;}
 |	line '\n'		{readhere(lex->input); return !compile($1);}
@@ -86,7 +86,7 @@ comword: '$' word		{$$=tree1('$', $2);}
 |	'`' brace		{$$=tree2('`', (tree*)0, $2);}
 |	'`' word brace		{$$=tree2('`', $2, $3);}
 |	'(' words ')'		{$$=globprop(tree1(PAREN, $2));}
-|	REDIR brace		{$$=mung1($1, $2); $$->type=PIPEFD;}
+|	REDIRW brace		{$$=mung1($1, $2); $$->type=PIPEFD;}
 keyword: FOR|IN|WHILE|IF|NOT|TWIDDLE|BANG|SUBSHELL|SWITCH|FN
 words:				{$$=(tree*)0;}
 |	words word		{$$=tree2(WORDS, $1, $2);}

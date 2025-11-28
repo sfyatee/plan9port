@@ -236,7 +236,7 @@ main(int argc, char *argv[], char *envp[])
 
 	int i;
 	argv0 = argv[0];
-	argc = getflags(argc, argv, "srdiIlxebpvVc:1m:1[command]", 1);
+	argc = getflags(argc, argv, "DYsrdiIlxebpvVc:1m:1[command]", 1);
 	if(argc==-1)
 		usage("[file [arg ...]]");
 	if(argv[0][0]=='-')
@@ -1031,7 +1031,7 @@ Xrdcmds(void)
 	}
 	Noerror();
 	nerror = 0;
-	if(yyparse()){
+	if((flag['Y'] ? yyparse : parse)()){
 		if(p->iflag && (!lex->eof || Eintr())){
 			if(Eintr()){
 				pchr(err, '\n');

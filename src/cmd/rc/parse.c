@@ -369,9 +369,9 @@ cmd3(int tok, int *ptok)
 	// |	simple redir		{$$=tree2(ARGLIST, $1, $2);}
 	for(;;) {
 		if(tok == REDIR || tok == DUP) {
-			t1 = tree2(ARGLIST, t1, yyredir(tok, &tok));
+			t1 = globprop(tree2(ARGLIST, t1, yyredir(tok, &tok)));
 		} else if(iswordtok(tok)) {
-			t1 = tree2(ARGLIST, t1, yyword(tok, &tok, 1));
+			t1 = globprop(tree2(ARGLIST, t1, yyword(tok, &tok, 1)));
 		} else {
 			break;
 		}
@@ -430,12 +430,12 @@ yyword(int tok, int *ptok, int eqok)
 			// No free carats around parens.
 			if(t->type == PAREN || tok == '(')
 				syntax(tok);
-			t = tree2('^', t, word1(tok, &tok));
+			t = globprop(tree2('^', t, word1(tok, &tok)));
 			continue;
 		}
 		tok = dropsp(tok);
 		if(tok == '^') {
-			t = tree2('^', t, word1(yylex(), &tok));
+			t = globprop(tree2('^', t, word1(yylex(), &tok)));
 			continue;
 		}
 		break;

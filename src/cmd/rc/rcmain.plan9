@@ -14,7 +14,7 @@ if not{
 	for(i in '/env/fn#'*){
 		. -bq $i
 	}
-	if(~ $#path 0) path=(. /bin)
+	if(~ $#path 0) path=(/bin .)
 }
 fn sigexit
 if(! ~ $#cflag 0){

@@ -17,8 +17,7 @@
 #include <dirent.h>
 #include <limits.h>
 #include <sys/wait.h>
-
-#include <signal.h> // TODO: MacOS needs this?
+#include <signal.h>
 
 static void execfinit(void);
 
