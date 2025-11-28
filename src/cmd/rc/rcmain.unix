@@ -2,7 +2,7 @@
 if(~ $#home 0) home=$HOME
 if(~ $#ifs 0) ifs=' 	
 '
-profile=$home/lib/profile
+profile=$home/.rcrc
 switch($#prompt){
 case 0
 	prompt=('% ' '	')
