@@ -39,6 +39,29 @@ latin1.h: $PLAN9/lib/keyboard $O.mklatinkbd
 $O.macargv: $MACARGV
 	$LD -o $target $prereq
 
+protodir=`pkg-config --variable=pkgdatadir wayland-protocols`
+xdgshell=$protodir/stable/xdg-shell/xdg-shell.xml
+xdgdeco=$protodir/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+wppointerconstraints=$protodir/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml
+
+wp-pointer-constraints.c:
+	wayland-scanner private-code < $wppointerconstraints > wayland-pointer-constraints.c
+
+wp-pointer-constraints.h:
+	wayland-scanner client-header< $wppointerconstraints > wayland-pointer-constraints.h
+
+xdg-shell-protocol.c:
+	wayland-scanner private-code < $xdgshell > wayland-xdg-shell.c
+
+xdg-shell-protocol.h:
+	wayland-scanner client-header< $xdgshell > wayland-xdg-shell.h
+
+xdg-decoration-protocol.c:
+	wayland-scanner private-code < $xdgdeco > wayland-xdg-decoration.c
+
+xdg-decoration-protocol.h:
+	wayland-scanner client-header< $xdgdeco > wayland-xdg-decoration.h
+
 %.$O: %.m
 	$CC $CFLAGS $OBJCFLAGS -fobjc-arc -o $target $stem.m
 
