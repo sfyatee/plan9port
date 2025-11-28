@@ -122,6 +122,7 @@ struct var{
 	int	pc;		/* pc of start of function */
 	char	fnchanged;
 	char	changed;
+	void	(*changefn)(var*);
 	char	name[];
 };
 var *vlook(char*), *gvlook(char*), *newvar(char*, var*);

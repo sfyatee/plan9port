@@ -49,6 +49,7 @@ int	mapfd(int);
 int	match(char*, char*, int);
 char*	makepath(char*, char*);
 void	panic(char*, int);
+void	pathinit(void);
 void	pfln(io*, char*, int);
 void	poplist(void);
 void	popword(void);

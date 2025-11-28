@@ -68,8 +68,10 @@ newvar(char *name, var *next)
 	v->next = next;
 	v->val = 0;
 	v->fn = 0;
-	v->changed = 0;
+	v->pc = 0;
+	v->changefn = 0;
 	v->fnchanged = 0;
+	v->changed = 0;
 	return v;
 }
 
@@ -93,12 +95,20 @@ vlook(char *name)
 }
 
 void
-setvar(char *name, word *val)
+_setvar(char *name, word *val, int callfn)
 {
 	var *v = vlook(name);
 	freewords(v->val);
 	v->val = val;
 	v->changed = 1;
+	if(callfn && v->changefn)
+		v->changefn(v);
+}
+
+void
+setvar(char *name, word *val)
+{
+	_setvar(name, val, 1);
 }
 
 void
@@ -106,4 +116,83 @@ freevar(var *v)
 {
 	freewords(v->val);
 	free(v);
+}
+
+void
+bigpath(var *v)
+{
+	/* convert $PATH to $path */
+	char *p, *q;
+	word **l, *w;
+
+	if(v->val == nil){
+		_setvar("path", nil, 0);
+		return;
+	}
+	p = v->val->word;
+	w = nil;
+	l = &w;
+	/*
+	 * Doesn't handle escaped colon nonsense.
+	 */
+	if(p[0] == 0)
+		p = nil;
+	while(p){
+		q = strchr(p, ':');
+		if(q)
+			*q = 0;
+		*l = newword(p[0] ? p : ".", nil);
+		l = &(*l)->next;
+		if(q){
+			*q = ':';
+			p = q+1;
+		}else
+			p = nil;
+	}
+	_setvar("path", w, 0);
+}
+
+char*
+list2strcolon(word *words)
+{
+	char *value, *s, *t;
+	int len = 0;
+	word *ap;
+	for(ap = words;ap;ap = ap->next)
+		len+=1+strlen(ap->word);
+	value = emalloc(len+1);
+	s = value;
+	for(ap = words;ap;ap = ap->next){
+		for(t = ap->word;*t;) *s++=*t++;
+		*s++=':';
+	}
+	if(s==value)
+		*s='\0';
+	else s[-1]='\0';
+	return value;
+}
+void
+littlepath(var *v)
+{
+	/* convert $path to $PATH */
+	char *p;
+	word *w;
+
+	p = list2strcolon(v->val);
+	w = new(word);
+	w->word = p;
+	w->next = nil;
+	_setvar("PATH", w, 1);	/* 1: recompute $path to expose colon problems */
+}
+
+void
+pathinit(void)
+{
+	var *v;
+
+	v = gvlook("path");
+	v->changefn = littlepath;
+	v = gvlook("PATH");
+	v->changefn = bigpath;
+	bigpath(v);
 }
