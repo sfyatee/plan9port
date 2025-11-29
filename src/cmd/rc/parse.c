@@ -512,7 +512,7 @@ word1(int tok, int *ptok)
 
 	case '(':
 		// |	'(' words ')'		{$$=tree1(PAREN, $2);}
-		t = tree1(PAREN, words(yylex(), &tok));
+		t = globprop(tree1(PAREN, words(yylex(), &tok)));
 		if(tok != ')')
 			syntax(tok);
 		*ptok = yylex();
