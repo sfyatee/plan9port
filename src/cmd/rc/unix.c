@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <limits.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <signal.h>
 
@@ -29,6 +30,7 @@ builtin Builtin[] = {
 	"exit",		execexit,
 	"shift",	execshift,
 	"wait",		execwait,
+	"umask",	execumask,
 	".",		execdot,
 	"flag",		execflag,
 	"finit",	execfinit,
@@ -68,6 +70,51 @@ Xrdfn(void)
 			continue;
 		}
 	}
+}
+
+static int
+octal(char *s)
+{
+	int n = 0;
+	char *p = s;
+	while(*p==' ' || *p=='\t' || *p=='\n') p++;
+	if(*p<'0' || *p>'7') return -1;
+	while(*p>='0' && *p<='7') n = n*8+(*p++-'0');
+	if(*p!='\0') return -1;
+	return n;
+}
+
+void
+execumask(void)
+{
+	int n;
+	word *w;
+	io *out;
+
+	setstatus("");
+	switch(count(runq->argv->words)){
+	default:
+usage:
+		pfmt(err, "Usage: umask [umask]\n");
+		setstatus("umask usage");
+		goto out;
+	case 2:
+		w = runq->argv->words->next;
+		if((n = octal(w->word)) < 0)
+			goto usage;
+		umask(n);
+		break;
+	case 1:
+		n = umask(0);
+		umask(n);
+		out = openiofd(mapfd(1));
+		pfmt(out, "%o\n", n);
+		flushio(out);
+		free(closeiostr(out));
+		break;
+	}
+out:
+	poplist();
 }
 
 static void
