@@ -20,6 +20,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+static void execrfork(void);
 static void execfinit(void);
 
 builtin Builtin[] = {
@@ -34,6 +35,7 @@ builtin Builtin[] = {
 	".",		execdot,
 	"flag",		execflag,
 	"finit",	execfinit,
+	"rfork",	execrfork,
 	0
 };
 
@@ -131,6 +133,54 @@ execfinit(void)
 	poplist();
 	envp=environ;
 	start(rdfns, 2, runq->local, runq->redir);
+}
+
+void
+execrfork(void)
+{
+	int arg;
+	char *s;
+
+	switch(count(runq->argv->words)){
+	case 1:
+		arg = RFENVG|RFNOTEG|RFNAMEG;
+		break;
+	case 2:
+		arg = 0;
+		for(s = runq->argv->words->next->word;*s;s++) switch(*s){
+		default:
+			goto Usage;
+		case 'n':
+			arg|=RFNAMEG;  break;
+		case 'N':
+			arg|=RFCNAMEG;
+			break;
+		case 'e':
+			/* arg|=RFENVG; */  break;
+		case 'E':
+			arg|=RFCENVG;  break;
+		case 's':
+			arg|=RFNOTEG;  break;
+		case 'f':
+			arg|=RFFDG;    break;
+		case 'F':
+			arg|=RFCFDG;   break;
+		}
+		break;
+	default:
+	Usage:
+		pfmt(err, "Usage: %s [nNeEsfF]\n", runq->argv->words->word);
+		setstatus("rfork usage");
+		poplist();
+		return;
+	}
+	if(rfork(arg)==-1){
+		pfmt(err, "rc: %s failed\n", runq->argv->words->word);
+		setstatus("rfork failed");
+	}
+	else
+		setstatus("");
+	poplist();
 }
 
 static int
