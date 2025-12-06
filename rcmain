@@ -24,6 +24,18 @@ if(! ~ $#cflag 0){
 	eval $cflag
 }
 if not if(flag i){
+	if(~ $termprog 9term || ~ $termprog win){
+		fn cd {
+			# builtin cd $1 && flag i && awd
+			# is not sufficient when running in a subshell
+			# that is rc -e (like mk uses!)
+			if(builtin cd $1){
+				if(flag i) $PLAN9/bin/9 awd || status=''
+				status=''
+			}
+		}
+		$PLAN9/bin/9 awd
+	}
 	if(flag l) {
 		. -q $profile
 	}
