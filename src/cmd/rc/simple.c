@@ -159,7 +159,7 @@ makepath(char *dir, char *file)
 	return path;
 }
 
-static char**
+char**
 mkargv(word *a)
 {
 	char **argv = (char **)emalloc((count(a)+2)*sizeof(char *));

@@ -16,10 +16,12 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <limits.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
 #include <signal.h>
 
+static void execulimit(void);
 static void execrfork(void);
 static void execfinit(void);
 
@@ -31,6 +33,7 @@ builtin Builtin[] = {
 	"exit",		execexit,
 	"shift",	execshift,
 	"wait",		execwait,
+	"ulimit",	execulimit,
 	"umask",	execumask,
 	".",		execdot,
 	"flag",		execflag,
@@ -72,6 +75,157 @@ Xrdfn(void)
 			continue;
 		}
 	}
+}
+
+static char *eargs = "cdflmnstuv";
+static int rlx[] = {
+	RLIMIT_CORE,
+	RLIMIT_DATA,
+	RLIMIT_FSIZE,
+#ifdef RLIMIT_MEMLOCK
+	RLIMIT_MEMLOCK,
+#else
+	0,
+#endif
+#ifdef RLIMIT_RSS
+	RLIMIT_RSS,
+#else
+	0,
+#endif
+	RLIMIT_NOFILE,
+	RLIMIT_STACK,
+	RLIMIT_CPU,
+#ifdef RLIMIT_NPROC
+	RLIMIT_NPROC,
+#else
+	0,
+#endif
+#ifdef RLIMIT_RSS
+	RLIMIT_RSS,
+#else
+	0,
+#endif
+};
+
+#define Notset    -4
+#define Unlimited -3
+#define Hard      -2
+#define Soft      -1
+
+static void
+eusage(void)
+{
+	pfmt(err, "Usage: ulimit [-SHa%s [limit]]\n", eargs);
+	setstatus("ulimit usage");
+}
+
+void
+execulimit(void)
+{
+	rlim_t n;
+	int fd, argc, sethard, setsoft, limit;
+	int flag[256];
+	char **argv, **oargv, *p;
+	struct rlimit rl;
+
+	setstatus("");
+	oargv = mkargv(runq->argv->words);
+	argv = oargv+1;
+	for(argc=0; argv[argc]; argc++)
+		;
+
+	memset(flag, 0, sizeof flag);
+	ARGBEGIN{
+	default:
+		if(strchr(eargs, ARGC()) == nil){
+			eusage();
+			goto out;
+		}
+	case 'S':
+	case 'H':
+	case 'a':
+		flag[(uchar)ARGC()] = 1;
+		break;
+	}ARGEND
+
+	if(argc > 1){
+		eusage();
+		goto out;
+	}
+
+	fd = mapfd(1);
+
+	sethard = 1;
+	setsoft = 1;
+	if(flag['S'] && flag['H'])
+		;
+	else if(flag['S'])
+		sethard = 0;
+	else if(flag['H'])
+		setsoft = 0;
+
+	limit = Notset;
+	if(argc>0){
+		if(strcmp(argv[0], "unlimited") == 0)
+			limit = Unlimited;
+		else if(strcmp(argv[0], "hard") == 0)
+			limit = Hard;
+		else if(strcmp(argv[0], "soft") == 0)
+			limit = Soft;
+		else if((limit = strtol(argv[0], &p, 0)) < 0 || *p != 0){
+			eusage();
+			goto out;
+		}
+	}
+	if(flag['a']){
+		for(p=eargs; *p; p++){
+			getrlimit(rlx[p-eargs], &rl);
+			n = flag['H'] ? rl.rlim_max : rl.rlim_cur;
+			if(n == RLIM_INFINITY)
+				fprint(fd, "ulimit -%c unlimited\n", *p);
+			else
+				fprint(fd, "ulimit -%c %llud\n", *p, (uvlong)n);
+		}
+		goto out;
+	}
+	for(p=eargs; *p; p++){
+		if(flag[(uchar)*p]){
+			n = 0;
+			getrlimit(rlx[p-eargs], &rl);
+			switch(limit){
+			case Notset:
+				n = flag['H'] ? rl.rlim_max : rl.rlim_cur;
+				if(n == RLIM_INFINITY)
+					fprint(fd, "ulimit -%c unlimited\n", *p);
+				else
+					fprint(fd, "ulimit -%c %llud\n", *p, (uvlong)n);
+				break;
+			case Hard:
+				n = rl.rlim_max;
+				goto set;
+			case Soft:
+				n = rl.rlim_cur;
+				goto set;
+			case Unlimited:
+				n = RLIM_INFINITY;
+				goto set;
+			default:
+				n = limit;
+			set:
+				if(setsoft)
+					rl.rlim_cur = n;
+				if(sethard)
+					rl.rlim_max = n;
+				if(setrlimit(rlx[p-eargs], &rl) < 0)
+					fprint(mapfd(2), "setrlimit: %r\n");
+				break;
+			}
+		}
+	}
+
+out:
+	free(oargv);
+	poplist();
 }
 
 static int

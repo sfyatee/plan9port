@@ -47,6 +47,7 @@ void	inttoascii(char*, int);
 void	kinit(void);
 int	mapfd(int);
 int	match(char*, char*, int);
+char**	mkargv(word*);
 char*	makepath(char*, char*);
 void	panic(char*, int);
 void	pathinit(void);
