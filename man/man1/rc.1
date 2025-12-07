@@ -4,7 +4,7 @@ rc, cd, eval, exec, exit, flag, rfork, shift, wait, whatis, ., ~ \- command lang
 .SH SYNOPSIS
 .B rc
 [
-.B -srdiIlxepvV
+.B -srdiIlxebpvV
 ]
 [
 .B -c command
@@ -590,7 +590,7 @@ usually because their execution changes or depends on
 internal state.
 .PD 0
 .HP
-.BI . " file ..."
+.BI . " [-biq] file ..."
 .br
 Execute commands from
 .IR file .
@@ -600,6 +600,20 @@ is set for the duration to the remainder of the argument list following
 .I File
 is searched for using
 .BR $path .
+The flags
+.B -b
+and
+.B -i
+can be set for the new commands
+(see description below).
+The
+.B -q
+flag suppresses errors,
+inhibiting the effect of
+.B -e
+and
+.B -v
+flags of the main interpreter.
 .HP
 .BI builtin " command ..."
 .br
@@ -953,6 +967,10 @@ Print each simple command before executing it.
 .B -r
 Print debugging information (internal form of commands
 as they are executed).
+.TP
+.B -b
+Compile the command file as a whole before executing.
+This allows syntax checking of the whole file.
 .PD
 .SH SOURCE
 .B \*9/src/cmd/rc
@@ -969,8 +987,6 @@ to check the value of
 .B $status
 changes
 .BR $status .
-.PP
-Functions that use here documents don't work.
 .PP
 The
 .BI <{ command }

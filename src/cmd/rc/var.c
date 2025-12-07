@@ -2,6 +2,8 @@
 #include "exec.h"
 #include "fns.h"
 
+var *gvar[NVAR];
+
 int
 hash(char *s, int n)
 {
@@ -58,12 +60,28 @@ klook(char *name)
 }
 
 var*
+newvar(char *name, var *next)
+{
+	int n = strlen(name)+1;
+	var *v = emalloc(sizeof(var)+n);
+	memmove(v->name, name, n);
+	v->next = next;
+	v->val = 0;
+	v->fn = 0;
+	v->pc = 0;
+	v->changefn = 0;
+	v->fnchanged = 0;
+	v->changed = 0;
+	return v;
+}
+
+var*
 gvlook(char *name)
 {
 	int h = hash(name, NVAR);
 	var *v;
 	for(v = gvar[h];v;v = v->next) if(strcmp(v->name, name)==0) return v;
-	return gvar[h] = newvar(strdup(name), gvar[h]);
+	return gvar[h] = newvar(name, gvar[h]);
 }
 
 var*
@@ -79,10 +97,10 @@ vlook(char *name)
 void
 _setvar(char *name, word *val, int callfn)
 {
-	struct var *v = vlook(name);
+	var *v = vlook(name);
 	freewords(v->val);
-	v->val=val;
-	v->changed=1;
+	v->val = val;
+	v->changed = 1;
 	if(callfn && v->changefn)
 		v->changefn(v);
 }
@@ -91,6 +109,13 @@ void
 setvar(char *name, word *val)
 {
 	_setvar(name, val, 1);
+}
+
+void
+freevar(var *v)
+{
+	freewords(v->val);
+	free(v);
 }
 
 void
